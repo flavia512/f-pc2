@@ -6,7 +6,9 @@ import { AdminUsers } from './pages/admin-users/admin-users';
 import { Rutas } from './pages/rutas/rutas';
 import { Reservas } from './pages/reservas/reservas';
 import { ViajesCompartidos } from './pages/viajes-compartidos/viajes-compartidos';
+// Protege rutas con authGuard para asegurar que solo usuarios autenticados puedan acceder a ciertas páginas
 import { authGuard } from './core/guards/auth.guard';
+
 import { CrearViaje } from './pages/crear-viaje/crear-viaje';
 import { Home } from './pages/home/home';
 import { Alertas } from './pages/alertas/alertas';
