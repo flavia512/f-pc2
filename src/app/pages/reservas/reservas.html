@@ -1,0 +1,108 @@
+<div class="mis-reservas-container">
+
+  <!-- HEADER -->
+  <div class="header-section">
+    <div>
+      <h1>Mis Reservas</h1>
+      <p>Gestiona tus viajes compartidos</p>
+    </div>
+
+    <button class="btn-create" (click)="abrirModal()">
+      + Crear nueva reserva
+    </button>
+  </div>
+
+  <!-- LISTA -->
+  <div class="reservas-list">
+
+    @if (cargando()) {
+      <div class="loading-state">
+        Cargando reservas...
+      </div>
+    } @else {
+
+      @for (reserva of reservas(); track reserva.id) {
+        <div class="reserva-card">
+
+          <h2>
+            {{ reserva.viaje?.origin || 'Viaje' }}
+            →
+            {{ reserva.viaje?.destiny || ('#' + reserva.trip_id) }}
+          </h2>
+
+          <div class="details">
+            <p><b>Estado:</b> {{ reserva.status }}</p>
+            <p><b>Asientos:</b> {{ reserva.seats }}</p>
+          </div>
+          <!-- 👇 BOTÓN NUEVO -->
+          <button class="btn-delete" (click)="eliminarReserva(reserva.id)">
+            Eliminar
+          </button>
+
+        </div>
+      } @empty {
+        <div class="empty-state">
+          <h3>No tienes reservas</h3>
+        </div>
+      }
+
+    }
+
+  </div>
+
+  <!-- MODAL -->
+  @if (mostrarModal()) {
+
+    <h2>Crear nueva reserva</h2>
+
+    <form (ngSubmit)="crearReserva()">
+
+      <!-- TRIP ID -->
+      <label for="trip_id">ID del viaje</label>
+      <input
+        id="trip_id"
+        name="trip_id"
+        type="number"
+        [(ngModel)]="nuevaReserva.trip_id"
+        required
+      />
+
+      <!-- ASIENTOS -->
+      <label for="seats">Asientos</label>
+      <input
+        id="seats"
+        name="seats"
+        type="number"
+        min="1"
+        [(ngModel)]="nuevaReserva.seats"
+        required
+      />
+
+      <!-- STATUS -->
+      <label for="status">Estado</label>
+      <select
+        id="status"
+        name="status"
+        [(ngModel)]="nuevaReserva.status"
+      >
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+      </select>
+
+      <!-- BOTONES -->
+      <div class="actions">
+        <button type="submit">
+          Guardar
+        </button>
+
+        <button type="button" (click)="cerrarModal()">
+          Cancelar
+        </button>
+      </div>
+
+    </form>
+  }
+
+
+
+</div>
