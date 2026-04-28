@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+
 
 @Component({
   selector: 'app-register',
@@ -9,17 +11,19 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
   styleUrl: './register.scss',
   imports: [CommonModule, ReactiveFormsModule]
 })
+
 export class Register {
   form: FormGroup;
   successMsg: string | null = null;
   errorMsg: string | null = null;
   loadingFlag = false;
 
-  constructor(private authService: AuthService, private fb: FormBuilder) {
+  constructor(private authService: AuthService, private fb: FormBuilder, private router: Router) {
     this.form = this.fb.group({
       full_name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      password_confirmation: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
@@ -36,7 +40,7 @@ export class Register {
         if (response.access_token && response.user) {
           this.authService.saveToken(response.access_token);
           this.authService.saveUser(response.user);
-          this.successMsg = '¡Registro exitoso!';
+          this.router.navigate(['/home']);
         }
         this.loadingFlag = false;
       },

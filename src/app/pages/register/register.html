@@ -60,6 +60,20 @@
             <div *ngIf="form.get('password')?.touched && form.get('password')?.hasError('minlength')" class="text-danger small mt-1">Mínimo 6 caracteres</div>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label">Confirmar Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input type="password" formControlName="password_confirmation" placeholder="Repite tu contraseña" class="form-control">
+            </div>
+            <div *ngIf="form.get('password_confirmation')?.touched && form.get('password_confirmation')?.hasError('required')" class="text-danger small mt-1">La confirmación es obligatoria</div>
+            <div *ngIf="form.get('password_confirmation')?.touched && form.get('password_confirmation')?.value !== form.get('password')?.value" class="text-danger small mt-1">Las contraseñas no coinciden</div>
+          </div>
           <div *ngIf="successMessage()" class="alert alert-success">{{ successMessage() }}</div>
           <div *ngIf="errorMessage()" class="alert alert-danger">{{ errorMessage() }}</div>
 
