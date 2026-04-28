@@ -1,55 +1,40 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Component } from '@angular/core';
+// aqui importamos el servicio de autenticación para usarlo en el registro ya que continene los metodos 
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })
 export class Register {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  constructor(private authService: AuthService) {}
+  successMsg: string | null = null;
+  errorMsg: string | null = null;
+  loadingFlag = false;
 
-  errorMessage = signal('');
-  successMessage = signal('');
-  loading = signal(false);
+successMessage() { return this.successMsg; }
+errorMessage() { return this.errorMsg; }
+loading() { return this.loadingFlag; }
 
-  form = this.fb.group({
-    full_name: ['', [Validators.required]],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
-  });
-
-  onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
-
-    this.authService.register(this.form.getRawValue() as {
-      full_name: string;
-      email: string;
-      password: string;
-    }).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.successMessage.set('Usuario registrado correctamente');
-        setTimeout(() => this.router.navigate(['/login']), 1500);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.errorMessage.set('No se pudo registrar el usuario');
+onRegister(form: any) {
+  this.successMsg = null;
+  this.errorMsg = null;
+  this.loadingFlag = true;
+  this.authService.register(form.value).subscribe({
+    next: (response: any) => {
+      if (response.access_token && response.user) {
+        this.authService.saveToken(response.access_token);
+        this.authService.saveUser(response.user);
+        this.successMsg = '¡Registro exitoso!';
+        // Puedes redirigir aquí si quieres
       }
-    });
-  }
+      this.loadingFlag = false;
+    },
+    error: (err) => {
+      this.errorMsg = err.error?.message || 'Error en el registro';
+      this.loadingFlag = false;
+    }
+  });
+}
 }
