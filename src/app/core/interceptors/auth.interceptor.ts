@@ -7,6 +7,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const token = localStorage.getItem('token');
   const isApiRequest = req.url.includes('localhost:8000');
+  // 🔍 DEBUG — bórralo cuando funcione
+  console.log('TOKEN:', token);
+  console.log('ES API:', isApiRequest);
+  console.log('URL:', req.url);
 
   const authReq = token && isApiRequest
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })

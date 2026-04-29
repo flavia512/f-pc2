@@ -1,0 +1,59 @@
+
+<div class="container py-4">
+ 
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+        
+      <form [formGroup]="vehiculoForm" (ngSubmit)="agregarVehiculo()" class="p-4 border rounded shadow-sm bg-white mb-4">
+        <h4 class="mb-3 text-center text-primary">Añadir Vehículo</h4>
+        <div class="mb-3">
+          <label for="matricula" class="form-label fw-semibold">Matrícula o Modelo</label>
+          <input id="matricula" type="text" class="form-control" placeholder="Ej: 1234-ABC" formControlName="matricula" required />
+          <div *ngIf="vehiculoForm.get('matricula')?.invalid && vehiculoForm.get('matricula')?.touched" class="text-danger small mt-1">
+            La matrícula es obligatoria.
+          </div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success btn-lg" [disabled]="vehiculoForm.invalid">
+            Añadir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-semibold">Mis Vehículos</div>
+        <div class="card-body p-0">
+          <table class="table mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">Matrícula/Modelo</th>
+                <th scope="col" class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let vehiculo of vehiculos">
+                <td>
+                  <a [routerLink]="['/vehiculo', vehiculo.id, vehiculo.user_id, vehiculo.matricula]" class="text-decoration-underline text-primary" style="cursor:pointer">
+                    {{ vehiculo.matricula }}
+                  </a>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-danger btn-sm" (click)="eliminarVehiculo(vehiculo.id)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="vehiculos.length === 0">
+                <td colspan="2" class="text-center text-muted">Aún no se ha añadido ningún vehículo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
