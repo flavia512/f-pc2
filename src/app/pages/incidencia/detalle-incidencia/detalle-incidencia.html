@@ -1,0 +1,36 @@
+<div class="container py-4">
+
+  <!-- Botón volver -->
+  <div class="mb-4">
+    <a routerLink="/vehiculos" class="btn btn-outline-secondary btn-sm">
+      ← Volver
+    </a>
+  </div>
+
+  <div class="row g-3">
+
+    <!--  Imagen (33.3%) -->
+    <div class="col-12 col-md-4 d-flex align-items-center justify-content-center">
+      <img
+        [src]="incidencia?.imagenUrl || 'assets/placeholder.png'"
+        alt="Imagen del incidente"
+        class="img-fluid"
+        style="max-width: 60%;"
+      />
+    </div>
+
+    <!-- COLUMNA 2 (50%) -->
+    <div class="col-12 col-md-6 p-3">
+      <h2 class="fw-bold">{{ incidencia?.modelo }}</h2>
+      <p class="text-muted fs-5">
+        <span class="fw-semibold">nombre:</span> {{ incidencia?.nombre }}
+      
+    </div>
+
+    <!-- COLUMNA 3 (16.6%) -->
+    <div class="col-12 col-md-2 bg-primary">
+      <p> fondo</p>
+    </div>
+
+  </div>
+</div>

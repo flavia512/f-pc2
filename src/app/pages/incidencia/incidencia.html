@@ -1,0 +1,55 @@
+
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <form [formGroup]="incidenciaForm" (ngSubmit)="crearIncidencia()" class="p-4 border rounded shadow-sm bg-white mb-4">
+        <h4 class="mb-3 text-center text-primary">Añadir incidencia</h4>
+        <div class="mb-3">
+          <label for="nombre" class="form-label fw-semibold">Nombre</label>
+          <input id="nombre" type="text" class="form-control" placeholder="Ej: Rueda pinchada" formControlName="nombre" required />
+          <div *ngIf="incidenciaForm.get('nombre')?.invalid && incidenciaForm.get('nombre')?.touched" class="text-danger small mt-1">
+            El nombre es obligatorio.
+          </div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success btn-lg" [disabled]="incidenciaForm.invalid">
+            Añadir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-semibold">Mis Incidencias</div>
+        <div class="card-body p-0">
+          <table class="table mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col" class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let incidencia of incidencias">
+                <td>
+                  {{ incidencia.nombre }}
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-danger btn-sm" (click)="eliminarIncidencia(incidencia.id)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="incidencias.length === 0">
+                <td colspan="2" class="text-center text-muted">Aún no se ha agregado ninguna incidencia.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

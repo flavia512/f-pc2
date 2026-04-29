@@ -12,9 +12,8 @@ import { authGuard } from './core/guards/auth.guard';
 import { CrearViaje } from './pages/crear-viaje/crear-viaje';
 import { Home } from './pages/home/home';
 import { Alertas } from './pages/alertas/alertas';
-// importamos para el examen
-import { VehiculosComponent } from './pages/vehiculos/vehiculos';
-import { VehiculoDetalleComponent } from './pages/vehiculos/vehiculo-detalle/vehiculo-detalle.component';
+
+import { Incidencias } from './pages/incidencia/incidencia';
 //AÑADIR  canActivate: [authGuard]  CUANDO EL BACKEND ESTE CONECTADO
 export const routes: Routes = [
   { path: 'home', component: Home },
@@ -27,8 +26,7 @@ export const routes: Routes = [
   { path: 'reservas', component: Reservas, canActivate: [authGuard] },
   { path: 'viajes-compartidos', component: ViajesCompartidos, canActivate: [authGuard] },
   { path: 'alertas', component: Alertas, canActivate: [authGuard] },
-  // RUTA NUEVA PARA VEHÍCULOS
-  { path: 'examen', component: VehiculosComponent, canActivate: [authGuard] },
-  { path: 'vehiculo/:id/:user_id/:matricula', component: VehiculoDetalleComponent, canActivate: [authGuard] },
+  // este es del examen
+  { path: 'examen', component: Incidencias, canActivate: [authGuard] },
   { path: '', redirectTo: 'home', pathMatch: 'full' }
 ];
