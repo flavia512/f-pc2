@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Ruta } from '../models/ruta.model';
 import { environment } from '../../../environments/environment';
 
@@ -9,14 +9,17 @@ export class RutaService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // Endpoint 5 - GET /api/users/obtener_rutas
-  obtenerRutas(): Observable<Ruta[]> {
-    return this.http.get<any>(`${this.apiUrl}/users/obtener_rutas`).pipe(
-      map(res => Array.isArray(res) ? res : res.data ?? [])
-    );
+  // GET /rutas — rutas del usuario autenticado
+  obtenerRutas(): Observable<{ exito: boolean; datos: Ruta[] }> {
+    return this.http.get<{ exito: boolean; datos: Ruta[] }>(`${this.apiUrl}/rutas`);
   }
 
-  // Endpoint 6 - POST /api/users/crear_rutas
+  // GET /rutas/todas — todas las rutas públicas
+  listarRutasPublicas(): Observable<{ exito: boolean; datos: Ruta[] }> {
+    return this.http.get<{ exito: boolean; datos: Ruta[] }>(`${this.apiUrl}/rutas/todas`);
+  }
+
+  // POST /rutas
   crearRuta(data: {
     nombre: string | null;
     origin_text: string;
@@ -28,14 +31,12 @@ export class RutaService {
     hora_salida: string | null;
     duration_min: number;
     pasa_por_m30: boolean;
-  }): Observable<{ success: boolean; data: Ruta }> {
-    return this.http.post<{ success: boolean; data: Ruta }>(
-      `${this.apiUrl}/users/crear_rutas`, data
-    );
+  }): Observable<{ exito: boolean; datos: Ruta }> {
+    return this.http.post<{ exito: boolean; datos: Ruta }>(`${this.apiUrl}/rutas`, data);
   }
 
-  // Endpoint 8 - DELETE /api/users/delete_rutas/{id}
-  eliminarRuta(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/users/delete_rutas/${id}`);
+  // DELETE /rutas/{id}
+  eliminarRuta(id: number): Observable<{ exito: boolean; mensaje: string }> {
+    return this.http.delete<{ exito: boolean; mensaje: string }>(`${this.apiUrl}/rutas/${id}`);
   }
 }

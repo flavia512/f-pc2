@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Favorito } from '../models/favorito.model';
 import { environment } from '../../../environments/environment';
@@ -11,13 +11,19 @@ export class FavoritoService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // Endpoint 24: Añadir a favoritos
-  agregarFavorito(data: { user_id: number; route_id: number }): Observable<Favorito> {
-    return this.http.post<Favorito>(`${this.apiUrl}/users/agregarFavorito`, data);
+  // GET /favoritos — favoritos del usuario autenticado
+  listarFavoritos(): Observable<{ exito: boolean; datos: Favorito[] }> {
+    return this.http.get<{ exito: boolean; datos: Favorito[] }>(`${this.apiUrl}/favoritos`);
   }
 
-  // Endpoint 25: Eliminar de favoritos
-  eliminarFavorito(data: { user_id: number; route_id: number }): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/favoritos`, { body: data });
+  // POST /favoritos
+  agregarFavorito(route_id: number): Observable<{ exito: boolean; datos: Favorito }> {
+    return this.http.post<{ exito: boolean; datos: Favorito }>(`${this.apiUrl}/favoritos`, { route_id });
+  }
+
+  // DELETE /favoritos?route_id=Y
+  eliminarFavorito(route_id: number): Observable<{ exito: boolean; mensaje: string }> {
+    const params = new HttpParams().set('route_id', route_id.toString());
+    return this.http.delete<{ exito: boolean; mensaje: string }>(`${this.apiUrl}/favoritos`, { params });
   }
 }

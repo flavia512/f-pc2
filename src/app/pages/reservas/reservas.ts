@@ -1,124 +1,79 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import { ReservaService } from '../../core/services/reserva.service';
-
-export interface Reserva {
-  id: number;
-  user_id: number;
-  trip_id: number;
-  seats: number;
-  status: string;
-  viaje?: {
-    origin: string;
-    destiny: string;
-    trip_datetime: string;
-  };
-}
-
-export interface ReservasResponse {
-  ok: boolean;
-  reservas: Reserva[];
-}
+import { AuthService } from '../../core/services/auth.service';
+import { ConfiguracionService } from '../../core/services/configuracion.service';
+import { Reserva } from '../../core/models/reserva.model';
 
 @Component({
   selector: 'app-reservas',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [DatePipe, RouterLink],
   templateUrl: './reservas.html',
-  styleUrl: './reservas.scss'
 })
 export class Reservas implements OnInit {
-
   private reservaService = inject(ReservaService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private configuracionService = inject(ConfiguracionService);
 
   reservas = signal<Reserva[]>([]);
-  cargando = signal(true);
-
-  mostrarModal = signal(false);
-
-  nuevaReserva = {
-    trip_id: null as number | null,
-    seats: 1,
-    status: 'pending'
-  };
+  toast = signal<{ tipo: 'exito' | 'error'; mensaje: string } | null>(null);
+  readonly linkSoporte = this.configuracionService.linkSoporte;
+  readonly esInvitado = this.authService.esInvitado;
+  modalCancelarId = signal<number | null>(null);
+  private toastTimeout: any;
 
   ngOnInit(): void {
-    this.cargarReservasUsuario();
+    this.configuracionService.cargarSoporte();
+    if (this.esInvitado() || !this.authService.estaAutenticado()) return;
+    this.cargarReservas();
   }
 
-  cargarReservasUsuario(): void {
-    this.cargando.set(true);
-
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const userId = user.id;
-
-    this.reservaService.obtenerReservasPorUsuario(userId).subscribe({
-      next: (res: ReservasResponse) => {
-        this.reservas.set(res.reservas);
-        this.cargando.set(false);
-      },
-      error: (err) => {
-        console.error(err);
-        this.reservas.set([]);
-        this.cargando.set(false);
-      }
+  cargarReservas(): void {
+    this.reservaService.obtenerReservasPorUsuario().subscribe({
+      next: (res) => this.reservas.set(res.datos ?? []),
+      error: () => this.reservas.set([])
     });
   }
 
-  abrirModal(): void {
-    this.mostrarModal.set(true);
-  }
-
-  cerrarModal(): void {
-    this.mostrarModal.set(false);
-    this.resetForm();
-  }
-
-  resetForm(): void {
-    this.nuevaReserva = {
-      trip_id: null,
-      seats: 1,
-      status: 'pending'
-    };
-  }
-
-  crearReserva(): void {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!this.nuevaReserva.trip_id) return;
-
-    const payload = {
-      user_id: user.id,
-      trip_id: Number(this.nuevaReserva.trip_id),
-      seats: Number(this.nuevaReserva.seats),
-      status: this.nuevaReserva.status
-    };
-
-    this.reservaService.crearReserva(payload).subscribe({
-      next: () => {
-        this.cerrarModal();
-        this.cargarReservasUsuario();
-      },
-      error: (err) => {
-        console.error('Error creando reserva:', err);
-      }
-    });
-  }
   eliminarReserva(id: number): void {
+    if (!this.authService.estaAutenticado()) {
+      this.mostrarToast('error', 'Para cancelar una reserva tienes que iniciar sesión');
+      setTimeout(() => this.router.navigate(['/login']), 1500);
+      return;
+    }
+    this.modalCancelarId.set(id);
+  }
 
-    if (!confirm('¿Eliminar esta reserva?')) return;
-
+  confirmarCancelacion(): void {
+    const id = this.modalCancelarId();
+    if (id === null) return;
+    this.modalCancelarId.set(null);
     this.reservaService.eliminarReserva(id).subscribe({
       next: () => {
-        console.log('Reserva eliminada');
-
-        this.cargarReservasUsuario();
+        this.reservas.update(list => list.filter(r => r.id !== id));
+        this.mostrarToast('exito', 'Reserva cancelada.');
       },
-      error: (err) => {
-        console.error('Error eliminando reserva:', err);
-      }
+      error: () => this.mostrarToast('error', 'No se pudo cancelar la reserva.')
     });
+  }
+
+  mostrarToast(tipo: 'exito' | 'error', mensaje: string): void {
+    this.toast.set({ tipo, mensaje });
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    this.toastTimeout = setTimeout(() => this.toast.set(null), 3000);
+  }
+
+  cerrarToast(): void {
+    this.toast.set(null);
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
   }
 }

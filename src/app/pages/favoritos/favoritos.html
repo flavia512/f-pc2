@@ -1,0 +1,173 @@
+<div class="container py-4 py-md-5" style="max-width: 680px;">
+
+  <!-- Toast éxito/error -->
+  @if (exito()) {
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:1090;">
+      <div class="toast show border-0 text-white bg-success">
+        <div class="d-flex">
+          <div class="toast-body">{{ exito() }}</div>
+          <button class="btn-close btn-close-white me-2 m-auto" (click)="exito.set('')"></button>
+        </div>
+      </div>
+    </div>
+  }
+  @if (error()) {
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:1090;">
+      <div class="toast show border-0 text-white bg-danger">
+        <div class="d-flex">
+          <div class="toast-body">{{ error() }}</div>
+          <button class="btn-close btn-close-white me-2 m-auto" (click)="error.set('')"></button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Cabecera -->
+  <div class="mb-4 mb-md-5">
+    <h1 class="fw-bold mb-1" style="font-size:2rem;">Favoritos</h1>
+    <p class="text-secondary mb-0">Viajes compartidos que has guardado</p>
+  </div>
+
+  <!-- Estado: invitado -->
+  @if (esInvitado()) {
+    <div class="card border-0 bg-light rounded-4 text-center py-5 px-3">
+      <i class="bi bi-heart text-secondary d-block mb-3" style="font-size:2.5rem;"></i>
+      <h6 class="fw-semibold">Guarda tus viajes favoritos</h6>
+      <p class="text-secondary small mb-4">Crea una cuenta gratuita para marcar viajes con ❤️ y encontrarlos aquí fácilmente.</p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <a routerLink="/login" [queryParams]="{returnUrl: '/favoritos'}" class="btn btn-primary rounded-pill px-4">
+          <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión
+        </a>
+        <a routerLink="/register" [queryParams]="{returnUrl: '/favoritos'}" class="btn btn-outline-primary rounded-pill px-4">
+          <i class="bi bi-person-plus me-1"></i>Registrarse
+        </a>
+      </div>
+    </div>
+
+  <!-- Estado: cargando -->
+  } @else if (cargando()) {
+    <div class="d-flex flex-column align-items-center py-5 text-secondary gap-2">
+      <div class="spinner-border spinner-border-sm"></div>
+      <span class="small">Cargando…</span>
+    </div>
+
+  <!-- Estado: vacío -->
+  } @else if (favoritos().length === 0) {
+    <div class="text-center py-5">
+      <i class="bi bi-heart text-secondary d-block mb-3" style="font-size:3rem;"></i>
+      <p class="fw-semibold mb-1">Aún no tienes favoritos</p>
+      <p class="text-secondary small mb-4">Pulsa el corazón en cualquier viaje para guardarlo aquí.</p>
+      <a routerLink="/viajes-compartidos" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-car-front me-2"></i>Ver viajes
+      </a>
+    </div>
+
+  <!-- Lista -->
+  } @else {
+    <div class="d-flex flex-column gap-3">
+      @for (fav of favoritos(); track fav.route_id) {
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+
+          <!-- Cabecera de la card -->
+          <div class="card-body px-4 py-3 position-relative">
+            <div class="d-flex align-items-start gap-3" style="padding-right:2.5rem;">
+              <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                   style="width:42px;height:42px;">
+                <i class="bi bi-car-front text-primary fs-5"></i>
+              </div>
+              <div class="flex-grow-1" style="min-width:0;">
+                @if (fav.ruta) {
+                  <h6 class="fw-semibold mb-1 text-truncate">
+                    {{ fav.ruta.origin_text.split(',')[0] }}
+                    <i class="bi bi-arrow-right text-secondary small mx-1"></i>
+                    {{ fav.ruta.dest_text.split(',')[0] }}
+                  </h6>
+                  @if (fav.ruta.hora_salida) {
+                    <span class="badge bg-light text-secondary border rounded-pill px-2 py-1 me-2" style="font-size:.74rem;">
+                      <i class="bi bi-clock me-1"></i>{{ fav.ruta.hora_salida.slice(0,5) }}
+                    </span>
+                  }
+                } @else {
+                  <h6 class="fw-semibold mb-0">Viaje #{{ fav.route_id }}</h6>
+                }
+
+                <!-- Botón ver viajes -->
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-2"
+                        style="font-size:.78rem;"
+                        (click)="toggleViajes(fav)">
+                  @if (cargandoViajes() === fav.route_id) {
+                    <span class="spinner-border spinner-border-sm me-1" style="width:10px;height:10px;"></span>
+                  } @else {
+                    <i class="bi bi-{{ expandido() === fav.route_id ? 'chevron-up' : 'search' }} me-1"></i>
+                  }
+                  {{ expandido() === fav.route_id ? 'Ocultar viajes' : 'Ver viajes disponibles' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Corazón quitar -->
+            <button class="btn btn-link p-0 position-absolute fav-remove-btn"
+                    style="top:.75rem;right:.85rem;"
+                    [disabled]="eliminando() === fav.route_id"
+                    (click)="eliminarFavorito(fav)"
+                    title="Quitar de favoritos">
+              @if (eliminando() === fav.route_id) {
+                <span class="spinner-border spinner-border-sm" style="width:14px;height:14px"></span>
+              } @else {
+                <i class="bi bi-heart-fill fs-5 text-danger"></i>
+              }
+            </button>
+          </div>
+
+          <!-- Panel expandible: viajes disponibles -->
+          @if (expandido() === fav.route_id) {
+            <div class="border-top bg-light px-4 py-3">
+              @if (cargandoViajes() === fav.route_id) {
+                <div class="d-flex align-items-center gap-2 text-secondary small py-2">
+                  <span class="spinner-border spinner-border-sm"></span> Buscando viajes…
+                </div>
+              } @else if (viajesDeRuta(fav.route_id).length === 0) {
+                <p class="text-secondary small mb-0 py-1">
+                  <i class="bi bi-info-circle me-1"></i>No hay viajes disponibles para esta ruta.
+                </p>
+              } @else {
+                <div class="d-flex flex-column gap-2">
+                  @for (viaje of viajesDeRuta(fav.route_id); track viaje.id) {
+                    <div class="d-flex align-items-center justify-content-between bg-white rounded-3 px-3 py-2 border gap-2">
+                      <div class="d-flex flex-wrap gap-2 align-items-center small">
+                        <span class="text-secondary">
+                          <i class="bi bi-calendar3 me-1"></i>{{ viaje.trip_datetime | date:'dd MMM yyyy' }}
+                        </span>
+                        <span class="text-secondary">
+                          <i class="bi bi-clock me-1"></i>{{ viaje.trip_datetime | date:'HH:mm' }}
+                        </span>
+                        <span class="text-secondary">
+                          <i class="bi bi-people me-1"></i>{{ viaje.seats_available }} libres
+                        </span>
+                      </div>
+                      <button class="btn btn-sm btn-primary rounded-pill px-3 flex-shrink-0"
+                              style="font-size:.78rem;"
+                              [disabled]="viaje.seats_available < 1 || reservando() === viaje.id"
+                              (click)="reservarViaje(viaje)">
+                        @if (reservando() === viaje.id) {
+                          <span class="spinner-border spinner-border-sm"></span>
+                        } @else {
+                          {{ viaje.seats_available < 1 ? 'Completo' : 'Reservar' }}
+                        }
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+        </div>
+      }
+    </div>
+
+    <p class="text-secondary small text-end mt-3">
+      {{ favoritos().length }} viaje{{ favoritos().length !== 1 ? 's' : '' }} guardado{{ favoritos().length !== 1 ? 's' : '' }}
+    </p>
+  }
+</div>

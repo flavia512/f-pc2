@@ -11,15 +11,37 @@ export class AlertaService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // Endpoint 15: POST /api/users/desactivar_alerta?idruta=X
-  desactivarAlerta(idruta: number): Observable<any> {
+  // PUT /alertas/desactivar?idruta=X
+  desactivarAlerta(idruta: number): Observable<{ exito: boolean; mensaje: string }> {
     const params = new HttpParams().set('idruta', idruta.toString());
-    return this.http.post(`${this.apiUrl}/users/desactivar_alerta`, {}, { params });
+    return this.http.put<{ exito: boolean; mensaje: string }>(`${this.apiUrl}/alertas/desactivar`, {}, { params });
   }
 
-  // Endpoint 16: GET /api/users/obtener_alerta?user_id=X
-  obtenerAlertaUsuario(user_id: number): Observable<{ ok: boolean; alertas: Alerta[] }> {
-    const params = new HttpParams().set('user_id', user_id.toString());
-    return this.http.get<{ ok: boolean; alertas: Alerta[] }>(`${this.apiUrl}/users/obtener_alerta`, { params });
+  // GET /alertas — alertas del usuario autenticado
+  obtenerAlertaUsuario(): Observable<{ exito: boolean; datos: Alerta[] }> {
+    return this.http.get<{ exito: boolean; datos: Alerta[] }>(`${this.apiUrl}/alertas`);
+  }
+
+  // POST /alertas
+  crearAlerta(data: { route_id: number; for_datetime: string }): Observable<{ exito: boolean; datos: Alerta }> {
+    return this.http.post<{ exito: boolean; datos: Alerta }>(`${this.apiUrl}/alertas`, data);
+  }
+
+  // PC1 FastAPI: GET /predict?fecha=YYYY-MM-DD&hora=HH:MM
+  predecirTrafico(fecha: string, hora: string): Observable<{
+    ok: boolean;
+    nivel_gravedad: number;
+    descripcion: string;
+    minutos_antes: number;
+    recomendacion: string;
+    color: string;
+  }> {
+    const params = new HttpParams().set('fecha', fecha).set('hora', hora);
+    return this.http.get<{ ok: boolean; nivel_gravedad: number; descripcion: string; minutos_antes: number; recomendacion: string; color: string }>(`${environment.pc1Url}/predict`, { params });
+  }
+
+  // POST /predicciones — Usado en: alertas.ts (crearAlerta, fire-and-forget)
+  guardarPrediccion(data: { route_id: number; resultado: string; ml_model_id?: string }): Observable<{ exito: boolean }> {
+    return this.http.post<{ exito: boolean }>(`${this.apiUrl}/predicciones`, data);
   }
 }

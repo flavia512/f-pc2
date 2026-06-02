@@ -10,50 +10,99 @@ import { environment } from '../../../environments/environment';
 })
 export class AuthService {
   private http = inject(HttpClient);
-
+//Constantes internas  
   private apiUrl = environment.apiUrl;
   private tokenKey = 'token';
   private userKey = 'user';
+  private guestKey = 'guestMode';
 
-  readonly currentUser = signal<User | null>(this.getStoredUser());
-  readonly isLoggedIn = computed(() => !!this.currentUser());
+  readonly usuarioActual = signal<User | null>(this.obtenerUsuarioGuardado());
+  readonly modoInvitado = signal(this.obtenerModoInvitadoGuardado());
+  readonly estaAutenticado = computed(() => !!this.usuarioActual());
+  readonly esInvitado = computed(() => this.modoInvitado() && !this.usuarioActual());
+  readonly puedeExplorar = computed(() => this.estaAutenticado() || this.esInvitado());
 
-  login(data: { email: string; password: string }): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, data).pipe(
+  iniciarSesion(data: { email: string; password: string }): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, data).pipe(
       tap((response) => {
-        this.saveToken(response.access_token);
+        this.limpiarModoInvitado();
+        this.guardarToken(response.access_token);
         if (response.user) {
-          this.saveUser(response.user);
-          this.currentUser.set(response.user);
+          this.guardarUsuario(response.user);
+          this.usuarioActual.set(response.user);
         }
       })
     );
   }
 
-  register(data: { full_name: string; email: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, data);
+  registrar(data: { full_name: string; email: string; password: string; password_confirmation: string }): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/registro`, data).pipe(
+      tap((response) => {
+        this.limpiarModoInvitado();
+        if (response.access_token) {
+          this.guardarToken(response.access_token);
+        }
+        if (response.user) {
+          this.guardarUsuario(response.user);
+          this.usuarioActual.set(response.user);
+        }
+      })
+    );
   }
 
-  logout(): void {
+  cerrarSesion(): void {
+    // Invalida token
+    this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
-    this.currentUser.set(null);
+    sessionStorage.removeItem(this.guestKey);
+    this.usuarioActual.set(null);
+    this.modoInvitado.set(false);
   }
 
-  saveToken(token: string): void {
+  continuarComoInvitado(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+    sessionStorage.setItem(this.guestKey, '1');
+    this.usuarioActual.set(null);
+    this.modoInvitado.set(true);
+  }
+
+  private guardarToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
   }
 
-  getToken(): string | null {
+  obtenerToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
 
-  saveUser(user: User): void {
+  private guardarUsuario(user: User): void {
     localStorage.setItem(this.userKey, JSON.stringify(user));
   }
 
-  getStoredUser(): User | null {
+  private obtenerUsuarioGuardado(): User | null {
     const user = localStorage.getItem(this.userKey);
     return user ? JSON.parse(user) : null;
+  }
+
+  private obtenerModoInvitadoGuardado(): boolean {
+    return sessionStorage.getItem(this.guestKey) === '1';
+  }
+
+  private limpiarModoInvitado(): void {
+    sessionStorage.removeItem(this.guestKey);
+    this.modoInvitado.set(false);
+  }
+// Metodo utilizado en auth.guard.ts para verificar el rol de admin
+  obtenerRolUsuario(): string | null {
+    const user = this.usuarioActual();
+    return user ? user.rol : null;
+  }
+
+  limpiarAutenticacion(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+    this.usuarioActual.set(null);
+    this.modoInvitado.set(false);
   }
 }

@@ -1,75 +1,71 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import mapboxgl from 'mapbox-gl';
 import { Subject, debounceTime, switchMap, of } from 'rxjs';
 import { MapboxService, MapboxFeature, RouteInfo } from '../../core/services/mapbox.service';
 import { RutaService } from '../../core/services/ruta.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Ruta } from '../../core/models/ruta.model';
 import { environment } from '../../../environments/environment';
 
-export interface Prediccion {
-  estado: 'Fluido' | 'Tráfico denso' | 'Atasco';
-  retrasoMinutos: number;
-  horaRecomendada: string;
-  explicacion: string;
-}
-
-export interface MiRuta {
-  id: number;
-  nombre: string;
-  origen: string;
-  destino: string;
-  horaSalida: string;
-  pasaPorM30: boolean;
-  alertasActivas: boolean;
-  dias: string;
-  prediccion?: Prediccion;
-}
+(mapboxgl as any).workerCount = 1;
 
 @Component({
   selector: 'app-rutas',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './rutas.html',
   styleUrl: './rutas.scss'
 })
 export class Rutas implements OnInit, OnDestroy {
   @ViewChild('mapaContainer') mapaContainer!: ElementRef;
 
-  rutas = signal<MiRuta[]>([]);
+  private mapboxService = inject(MapboxService);
+  private rutaService   = inject(RutaService);
+  private ngZone        = inject(NgZone);
+  private authService   = inject(AuthService);
+
+  readonly estaAutenticado = this.authService.estaAutenticado;
+
+  rutas = signal<Ruta[]>([]);
   cargando = signal(true);
   errorCarga = signal(false);
   mostrarModal = signal(false);
   guardandoRuta = signal(false);
-
-  // Toast de feedback
+  mostrarModalLogin = signal(false);
+  modalEliminarRuta = signal<{ id: number; nombre: string } | null>(null);
   toast = signal<{ tipo: 'exito' | 'error'; mensaje: string } | null>(null);
-  private toastTimeout: any = null;
 
-  // Centro de Madrid por defecto
-  private readonly MADRID_CENTER: [number, number] = [-3.7038, 40.4168];
+  readonly esInvitado = this.authService.esInvitado;
+  tituloPagina = 'Mis Rutas';
+  descripcionPagina = 'Gestiona tus trayectos habituales y recibe alertas de tráfico';
+
+  filtroOrigen = '';
+  filtroDestino = '';
+  rutasFiltradas = computed(() => {
+    const origen = this.filtroOrigen.trim().toLowerCase();
+    const destino = this.filtroDestino.trim().toLowerCase();
+
+    return this.rutas().filter(ruta => {
+      const coincideOrigen = !origen || ruta.origin_text.toLowerCase().includes(origen);
+      const coincideDestino = !destino || ruta.dest_text.toLowerCase().includes(destino);
+      return coincideOrigen && coincideDestino;
+    });
+  });
 
   nuevaRuta = { nombre: '', origen: '', destino: '', horaSalida: '' };
-
-  // Autocomplete
   sugerenciasOrigen = signal<MapboxFeature[]>([]);
   sugerenciasDestino = signal<MapboxFeature[]>([]);
   coordOrigen = signal<[number, number] | null>(null);
   coordDestino = signal<[number, number] | null>(null);
-
-  // Ruta calculada
   rutaInfo = signal<RouteInfo | null>(null);
   calculandoRuta = signal(false);
 
+  private readonly MADRID_CENTER: [number, number] = [-3.7038, 40.4168];
   private mapa: mapboxgl.Map | null = null;
   private origenSubject = new Subject<string>();
   private destinoSubject = new Subject<string>();
-
-  constructor(
-    private mapboxService: MapboxService,
-    private rutaService: RutaService,
-    private ngZone: NgZone
-  ) {}
+  private toastTimeout: any = null;
 
   ngOnInit(): void {
     this.cargarRutasUsuario();
@@ -121,8 +117,6 @@ export class Rutas implements OnInit, OnDestroy {
     if (!this.coordOrigen() || !this.coordDestino()) return;
     this.calculandoRuta.set(true);
     this.rutaInfo.set(null);
-    this.mapa?.remove();
-    this.mapa = null;
 
     this.mapboxService.calcularRuta(this.coordOrigen()!, this.coordDestino()!).subscribe({
       next: info => {
@@ -130,26 +124,55 @@ export class Rutas implements OnInit, OnDestroy {
         this.calculandoRuta.set(false);
         setTimeout(() => this.inicializarMapa(info), 150);
       },
-      error: () => { this.calculandoRuta.set(false); }
+      error: () => this.calculandoRuta.set(false)
     });
-  }
-
-  inicializarMapaVacio(): void {
-    if (!this.mapaContainer?.nativeElement) return;
-    this.mapa?.remove();
-    (mapboxgl as any).accessToken = environment.mapboxToken;
-    this.mapa = new mapboxgl.Map({
-      container: this.mapaContainer.nativeElement,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: this.MADRID_CENTER,
-      zoom: 11
-    });
-    this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
   }
 
   inicializarMapa(info: RouteInfo): void {
     if (!this.mapaContainer?.nativeElement) return;
-    this.mapa?.remove();
+
+    const renderRoute = () => {
+      if (!this.mapa) return;
+      try {
+        if (this.mapa.getSource('ruta')) {
+          (this.mapa.getSource('ruta') as mapboxgl.GeoJSONSource).setData({
+            type: 'Feature',
+            geometry: info.geometry,
+            properties: {}
+          });
+        } else {
+          this.mapa.addSource('ruta', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: info.geometry, properties: {} }
+          });
+          this.mapa.addLayer({
+            id: 'ruta-line',
+            type: 'line',
+            source: 'ruta',
+            paint: { 'line-color': '#1d4ed8', 'line-width': 4, 'line-opacity': 0.9 }
+          });
+          new mapboxgl.Marker({ color: '#16a34a' }).setLngLat(this.coordOrigen()!).addTo(this.mapa);
+          new mapboxgl.Marker({ color: '#dc2626' }).setLngLat(this.coordDestino()!).addTo(this.mapa);
+        }
+
+        const coords = info.geometry.coordinates as [number, number][];
+        const bounds = coords.reduce(
+          (b, c) => b.extend(c),
+          new mapboxgl.LngLatBounds(coords[0], coords[0])
+        );
+        this.mapa.fitBounds(bounds, { padding: 40 });
+      } catch (_) {}
+    };
+
+    if (this.mapa) {
+      this.mapa.resize();
+      if (this.mapa.loaded()) {
+        renderRoute();
+      } else {
+        this.mapa.once('load', renderRoute);
+      }
+      return;
+    }
 
     (mapboxgl as any).accessToken = environment.mapboxToken;
     this.mapa = new mapboxgl.Map({
@@ -158,45 +181,17 @@ export class Rutas implements OnInit, OnDestroy {
       center: this.coordOrigen()!,
       zoom: 11
     });
-
-    this.mapa.on('load', () => {
-      this.mapa!.addSource('ruta', {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: info.geometry, properties: {} }
-      });
-      this.mapa!.addLayer({
-        id: 'ruta-line', type: 'line', source: 'ruta',
-        paint: { 'line-color': '#1d4ed8', 'line-width': 4, 'line-opacity': 0.9 }
-      });
-
-      new mapboxgl.Marker({ color: '#16a34a' }).setLngLat(this.coordOrigen()!).addTo(this.mapa!);
-      new mapboxgl.Marker({ color: '#dc2626' }).setLngLat(this.coordDestino()!).addTo(this.mapa!);
-
-      const coords = info.geometry.coordinates as [number, number][];
-      const bounds = coords.reduce(
-        (b, c) => b.extend(c),
-        new mapboxgl.LngLatBounds(coords[0], coords[0])
-      );
-      this.mapa!.fitBounds(bounds, { padding: 40 });
-    });
+    this.mapa.on('load', renderRoute);
   }
- 
+
   cargarRutasUsuario(): void {
+    if (this.esInvitado() || !this.authService.estaAutenticado()) return;
     this.cargando.set(true);
     this.errorCarga.set(false);
+
     this.rutaService.obtenerRutas().subscribe({
-      next: (rutas: Ruta[]) => {
-        console.log('Rutas recibidas:', rutas); // Log temporal para depuración
-        this.rutas.set(rutas.map(r => ({
-          id: r.id,
-          nombre: r.nombre ?? 'Sin nombre',
-          origen: r.origin_text,
-          destino: r.dest_text,
-          horaSalida: r.hora_salida ?? '',
-          pasaPorM30: r.pasa_por_m30,
-          alertasActivas: true,
-          dias: 'Días: lunes a viernes'
-        })));
+      next: (res) => {
+        this.rutas.set(res.datos ?? []);
         this.cargando.set(false);
       },
       error: (err) => {
@@ -213,43 +208,56 @@ export class Rutas implements OnInit, OnDestroy {
   }
 
   eliminarRuta(id: number): void {
+    if (!this.authService.estaAutenticado()) {
+      this.mostrarModalLogin.set(true);
+      return;
+    }
     const ruta = this.rutas().find(r => r.id === id);
-    const nombre = ruta?.nombre || 'esta ruta';
-    if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    this.modalEliminarRuta.set({ id, nombre: ruta?.nombre || 'esta ruta' });
+  }
 
-    this.rutaService.eliminarRuta(id).subscribe({
+  confirmarEliminarRuta(): void {
+    const datos = this.modalEliminarRuta();
+    if (!datos) return;
+    this.modalEliminarRuta.set(null);
+    this.rutaService.eliminarRuta(datos.id).subscribe({
       next: () => {
-        this.rutas.update(list => list.filter(r => r.id !== id));
+        this.rutas.update(list => list.filter(r => r.id !== datos.id));
         this.mostrarToast('exito', 'Ruta eliminada correctamente');
       },
-      error: () => {
-        this.mostrarToast('error', 'No se pudo eliminar la ruta. Inténtalo de nuevo.');
-      }
+      error: () => this.mostrarToast('error', 'No se pudo eliminar la ruta. Inténtalo de nuevo.')
     });
   }
 
-  mostrarToast(tipo: 'exito' | 'error', mensaje: string): void {
-    this.toast.set({ tipo, mensaje });
-    if (this.toastTimeout) clearTimeout(this.toastTimeout);
-    this.toastTimeout = setTimeout(() => this.toast.set(null), 5000);
-  }
-
-  cerrarToast(): void {
-    this.toast.set(null);
-    if (this.toastTimeout) clearTimeout(this.toastTimeout);
-  }
-
   abrirModal(): void {
+    if (!this.authService.estaAutenticado()) {
+      this.mostrarModalLogin.set(true);
+      return;
+    }
+
     this.mostrarModal.set(true);
-    // Inicializar mapa vacío cuando el modal termine de renderizarse
-    setTimeout(() => this.inicializarMapaVacio(), 200);
+    if (!this.mapa) {
+      setTimeout(() => this.inicializarMapaVacio(), 200);
+    } else {
+      setTimeout(() => this.mapa?.resize(), 50);
+    }
+  }
+
+  inicializarMapaVacio(): void {
+    if (!this.mapaContainer?.nativeElement) return;
+    (mapboxgl as any).accessToken = environment.mapboxToken;
+    this.mapa = new mapboxgl.Map({
+      container: this.mapaContainer.nativeElement,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: this.MADRID_CENTER,
+      zoom: 11
+    });
+    this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
   }
 
   cerrarModal(): void {
     this.mostrarModal.set(false);
     this.guardandoRuta.set(false);
-    try { this.mapa?.remove(); } catch (_) {}
-    this.mapa = null;
     this.rutaInfo.set(null);
     this.coordOrigen.set(null);
     this.coordDestino.set(null);
@@ -259,6 +267,11 @@ export class Rutas implements OnInit, OnDestroy {
   }
 
   guardarRutaBackend(): void {
+    if (!this.authService.estaAutenticado()) {
+      this.mostrarModalLogin.set(true);
+      return;
+    }
+
     if (!this.coordOrigen() || !this.coordDestino() || !this.rutaInfo()) return;
     this.guardandoRuta.set(true);
 
@@ -272,41 +285,15 @@ export class Rutas implements OnInit, OnDestroy {
       dest_lng: this.coordDestino()![0],
       hora_salida: this.nuevaRuta.horaSalida || null,
       duration_min: this.rutaInfo()!.duracionMinutos,
-      pasa_por_m30: this.rutaInfo()!.pasamPorM30
+      pasa_por_m30: this.rutaInfo()!.pasaPorM30
     };
 
     this.rutaService.crearRuta(payload).subscribe({
       next: (res) => {
         this.ngZone.run(() => {
-          // Cerrar modal primero (antes de tocar el mapa)
-          this.mostrarModal.set(false);
-          this.guardandoRuta.set(false);
-
-          // Destruir mapa de forma segura
-          try { this.mapa?.remove(); } catch (_) {}
-          this.mapa = null;
-          this.rutaInfo.set(null);
-          this.coordOrigen.set(null);
-          this.coordDestino.set(null);
-          this.sugerenciasOrigen.set([]);
-          this.sugerenciasDestino.set([]);
-          this.nuevaRuta = { nombre: '', origen: '', destino: '', horaSalida: '' };
-
-          // Añadir ruta al array
-          const r = res?.data;
-          if (r) {
-            this.rutas.update(list => [{
-              id: r.id,
-              nombre: r.nombre ?? 'Sin nombre',
-              origen: r.origin_text,
-              destino: r.dest_text,
-              horaSalida: r.hora_salida ?? '',
-              pasaPorM30: r.pasa_por_m30,
-              alertasActivas: true,
-              dias: 'Días: lunes a viernes'
-            }, ...list]);
-          }
-
+          this.cerrarModal();
+          const r = res?.datos;
+          if (r) this.rutas.update(list => [r, ...list]);
           this.mostrarToast('exito', `✓ Ruta "${r?.nombre ?? 'Nueva ruta'}" guardada correctamente`);
         });
       },
@@ -321,5 +308,16 @@ export class Rutas implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  mostrarToast(tipo: 'exito' | 'error', mensaje: string): void {
+    this.toast.set({ tipo, mensaje });
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => this.toast.set(null), 5000);
+  }
+
+  cerrarToast(): void {
+    this.toast.set(null);
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
   }
 }

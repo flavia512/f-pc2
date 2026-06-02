@@ -1,29 +1,40 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { UserService } from '../../core/services/user.service';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AdminService } from '../../core/services/admin.service';
 import { User } from '../../core/models/user.model';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './profile.html',
   styleUrl: './profile.scss'
 })
 export class Profile implements OnInit {
-  private userService = inject(UserService);
+  private userService = inject(AdminService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
-  // Usamos directamente el modelo de la base de datos
-  usuario: Partial<User> = {};
+  usuarioId = signal<number | null>(null);
+  isActive = signal<boolean>(false);
+  rol = signal<string>('');
 
   cargando = signal(true);
   guardando = signal(false);
-  error = signal('');
+
+  mensajeExito = signal('');
+  mensajeError = signal('');
+
+  profileForm: FormGroup = this.fb.group({
+    full_name: ['', [
+      Validators.required,
+      Validators.minLength(2),
+      Validators.maxLength(100)
+    ]],
+    email: [{ value: '', disabled: true }]
+  });
 
   ngOnInit(): void {
     this.cargarDatosUsuario();
@@ -31,48 +42,64 @@ export class Profile implements OnInit {
 
   cargarDatosUsuario(): void {
     this.cargando.set(true);
-    this.error.set('');
+    this.limpiarMensajes();
 
-    this.userService.getProfile().subscribe({
-      next: (user: User) => {
-        this.usuario = {
+    this.userService.obtenerPerfil().subscribe({
+      next: (res) => {
+        const user = res.datos;
+        this.usuarioId.set(user.id);
+        this.isActive.set(user.is_active);
+        this.rol.set(user.rol);
+
+        this.profileForm.patchValue({
           full_name: user.full_name,
-          email: user.email,
-          puntos: user.puntos,
-          is_active: user.is_active,
-          rol: user.rol
-        };
+          email: user.email
+        });
+
         this.cargando.set(false);
       },
       error: () => {
-        this.error.set('No se pudo cargar el perfil. Intenta más tarde.');
+        this.mensajeError.set('No se pudo cargar el perfil. Intenta más tarde.');
         this.cargando.set(false);
       }
     });
   }
 
   guardarCambios(): void {
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
+
     this.guardando.set(true);
-    this.error.set('');
+    this.limpiarMensajes();
 
     const datosActualizados: Partial<User> = {
-      full_name: this.usuario.full_name
+      full_name: this.profileForm.get('full_name')?.value
     };
 
-    this.userService.updateProfile(datosActualizados).subscribe({
+    this.userService.actualizarPerfil(datosActualizados).subscribe({
       next: () => {
         this.guardando.set(false);
-        alert('Perfil actualizado correctamente');
+        this.mensajeExito.set('Perfil actualizado correctamente.');
       },
       error: () => {
         this.guardando.set(false);
-        this.error.set('No se pudo actualizar el perfil. Intenta más tarde.');
+        this.mensajeError.set('No se pudo actualizar el perfil.');
       }
     });
   }
 
+  private limpiarMensajes(): void {
+    this.mensajeExito.set('');
+    this.mensajeError.set('');
+  }
+
+  // Helpers para el template
+  get fullNameCtrl() { return this.profileForm.get('full_name')!; }
+
   logout(): void {
-    this.authService.logout();
+    this.authService.cerrarSesion();
     this.router.navigate(['/login']);
   }
 }

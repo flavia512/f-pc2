@@ -2,30 +2,31 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
-  const token = localStorage.getItem('token');
-  const isApiRequest = req.url.includes('localhost:8000');
-  // 🔍 DEBUG — bórralo cuando funcione
-  console.log('TOKEN:', token);
-  console.log('ES API:', isApiRequest);
-  console.log('URL:', req.url);
-
-  const authReq = token && isApiRequest
-    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+  const authService = inject(AuthService);
+  const token = authService.obtenerToken();
+  const esLlamadaAlApi = req.url.startsWith(environment.apiUrl);
+  const peticionConToken = token && esLlamadaAlApi
+    ? req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      })
     : req;
 
-  return next(authReq).pipe(
-    catchError((err: HttpErrorResponse) => {
-      if (err.status === 401 && isApiRequest) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+  return next(peticionConToken).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401 && esLlamadaAlApi && !authService.esInvitado()) {
+        authService.limpiarAutenticacion();
         if (!router.url.includes('/login')) {
-          router.navigate(['/login'], { queryParams: { expired: '1' } });
+          router.navigate(['/login'], { queryParams: { expirado: '1' } });
         }
       }
-      return throwError(() => err);
+      return throwError(() => error);
     })
   );
 };

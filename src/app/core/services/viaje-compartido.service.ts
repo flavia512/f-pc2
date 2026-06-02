@@ -1,49 +1,72 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ViajeCompartido } from '../models/viaje-compartido.model';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { ViajeCompartido } from '../models/viaje-compartido.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ViajeCompartidoService {
+  private http    = inject(HttpClient);
+  private apiUrl  = environment.apiUrl;
 
-  private http = inject(HttpClient);
-  private apiUrl = environment.apiUrl;
-
-  //Lista de los viajes
-  listarViajes(): Observable<{ success: boolean; data: ViajeCompartido[] }> {
-    return this.http.get<{ success: boolean; data: ViajeCompartido[] }>(
-      `${this.apiUrl}/users/viajes_compartidos`
-    );
-  }
-
-  // Obtener uno
-  obtenerViaje(id: number): Observable<ViajeCompartido> {
-    return this.http.get<ViajeCompartido>(
-      `${this.apiUrl}/users/obtener_viajecompartido/${id}`
-    );
-  }
-
-  // Crear viaje
+  // POST /viajes
   crearViaje(data: {
-    driver_user_id: number;
     route_id: number;
-    origin: string;
-    destiny: string;
     trip_datetime: string;
     seats_total: number;
     seats_available: number;
-    status: string;
-  }): Observable<ViajeCompartido> {
-    return this.http.post<ViajeCompartido>(`${this.apiUrl}/driver/crear_viaje`, data);
+  }): Observable<{ exito: boolean; mensaje: string; datos: ViajeCompartido }> {
+    return this.http.post<{ exito: boolean; mensaje: string; datos: ViajeCompartido }>(
+      `${this.apiUrl}/viajes`,
+      data
+    );
   }
 
+  // GET /viajes/:id
+  obtenerViaje(idViaje: number): Observable<{ exito: boolean; datos: ViajeCompartido }> {
+    return this.http.get<{ exito: boolean; datos: ViajeCompartido }>(
+      `${this.apiUrl}/viajes/${idViaje}`
+    );
+  }
 
-  // Eliminar viaje
-  eliminarViaje(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/driver/eliminar_viaje/${id}`
+  // PUT /viajes/:id
+  actualizarViaje(idViaje: number, data: Partial<ViajeCompartido>): Observable<{ exito: boolean; datos: ViajeCompartido }> {
+    return this.http.put<{ exito: boolean; datos: ViajeCompartido }>(
+      `${this.apiUrl}/viajes/${idViaje}`,
+      data
+    );
+  }
+
+  // DELETE /viajes/:id
+  eliminarViaje(idViaje: number): Observable<{ exito: boolean; mensaje: string }> {
+    return this.http.delete<{ exito: boolean; mensaje: string }>(
+      `${this.apiUrl}/viajes/${idViaje}`
+    );
+  }
+
+  // GET /viajes/mis-viajes
+  misViajes(): Observable<{ exito: boolean; datos: ViajeCompartido[] }> {
+    return this.http.get<{ exito: boolean; datos: ViajeCompartido[] }>(`${this.apiUrl}/viajes/mis-viajes`);
+  }
+
+  // GET /viajes
+  listarViajes(): Observable<{ exito: boolean; datos: ViajeCompartido[] }> {
+    return this.http.get<{ exito: boolean; datos: ViajeCompartido[] }>(`${this.apiUrl}/viajes`);
+  }
+
+  // GET /viajes/buscar
+  buscarViajes(filtros: { origin?: string; destiny?: string; fecha?: string }): Observable<{ exito: boolean; datos: ViajeCompartido[] }> {
+    const params: Record<string, string> = {};
+    if (filtros.origin?.trim())  params['origin']  = filtros.origin.trim();
+    if (filtros.destiny?.trim()) params['destiny'] = filtros.destiny.trim();
+    if (filtros.fecha)           params['fecha']   = filtros.fecha;
+
+    return this.http.get<{ exito: boolean; datos: ViajeCompartido[] }>(
+      `${this.apiUrl}/viajes/buscar`,
+      { params }
     );
   }
 }
