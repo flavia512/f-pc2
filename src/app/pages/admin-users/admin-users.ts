@@ -145,7 +145,7 @@ export class AdminUsers implements OnInit {
             labels: { padding: 18, font: { size: 13 }, usePointStyle: true }
           },
           // personalización del tooltip para mostrar "Admin: 5" en lugar de solo "5"
-          tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}` } }
+          tooltip: { callbacks: { label: (ctx: import('chart.js').TooltipItem<'doughnut'>) => ` ${ctx.label}: ${ctx.parsed}` } }
         }
       }
     });
