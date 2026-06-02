@@ -1,0 +1,39 @@
+<div class="containe">  
+    <h2>Crear Aviso</h2>
+    <div>
+    <form (ngSubmit)="CrearAviso()" maxwidth="500px"  >
+        <div class="mb-3">
+            <label for="texto" class="form-label">Texto del aviso</label>
+            <input type="text" id="texto" class="form-control" [(ngModel)]="texto" name="texto" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="importancia" class="form-label">Importancia</label>
+            <select id="importancia" class="form-select" [(ngModel)]="importancia" name="importancia">
+                <option [value]="1">Leve</option>
+                <option [value]="2">Moderada</option>
+                <option [value]="3">Grave</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="destinatario" class="form-label">Destinatario</label>
+            <select id="destinatario" class="form-select" name="destinatario">
+                <option [ngValue]="null">Todos</option>
+                <option *ngFor="let usuario of usuarios" [value]="usuario.id">{{ usuario.full_name }}</option>
+            </select>
+        <button type="submit" class="btn btn-primary">Crear Aviso</button>
+    
+    
+        
+        
+</div>
+<div>
+    <h4>Lista de Avisos</h4>
+        <ul class="list-group">
+            <li *ngFor="let aviso of avisos" class="list-group-item">
+                <strong>{{ aviso.texto }}</strong> - {{ aviso.importancia === 1 ? 'Leve' : aviso.importancia === 2 ? 'Moderada' : 'Grave' }} - Destinatario: {{ aviso.user_id ? (usuarios?.find(u => u.id === aviso.user_id)?.full_name || 'Desconocido') : 'Todos' }}
+            </li>
+        </ul>
+</div>
+

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from '../models/user.model';
+import { Aviso } from '../models/aviso.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -46,6 +47,29 @@ export class AdminService {
   // DELETE /admin/usuarios/{id} — Usado en: admin-users.ts (eliminarUsuario)
   eliminarUsuario(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/admin/usuarios/${id}`);
+  }
+
+
+
+
+
+
+
+
+
+
+
+  
+  crearAviso(data: { texto: string; importancia: number; user_id: number | null }): Observable<Aviso> {
+    return this.http.post<Aviso>(`${this.apiUrl}/examen/avisos`, data);
+  }
+
+  listarAvisos(): Observable<Aviso[]> {
+    return this.http.get<Aviso[]>(`${this.apiUrl}/examen/avisos`);
+  }
+
+  getAvisosUsuario(userId: number): Observable<Aviso[]> {
+    return this.http.get<Aviso[]>(`${this.apiUrl}/examen/avisos/usuario/${userId}`);
   }
 
 }

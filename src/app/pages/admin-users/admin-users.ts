@@ -42,7 +42,7 @@ export class AdminUsers implements OnInit {
 
   // USERS
   usuarios = signal<User[]>([]);
-  buscando: string = '';
+  buscando: string = ''; 
   // RESERVAS POR VIAJE COMPARTIDO
   reservas = signal<Reserva[]>([]);
   viajes = signal<ViajeCompartido[]>([]);

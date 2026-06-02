@@ -1,4 +1,11 @@
 <div class="container py-4 py-md-5">
+
+  @for (a of avisos; track a.id) {
+    <div class="alert alert-{{ color(a.importancia) }} align-items-center gap-1">
+      <span><strong>{{ label(a.importancia) }}:</strong> {{ a.texto }}</span>
+    </div>
+  }
+
     <section class="text-center mb-4 mb-md-5">
         <div class="bg-primary bg-gradient rounded-4 shadow-lg p-3 p-sm-4 p-md-5 mb-3 mb-md-4 text-white position-relative overflow-hidden">
             <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25" style="background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;"></div>
