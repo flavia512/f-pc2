@@ -11,7 +11,7 @@ import { CrearViaje } from './pages/crear-viaje/crear-viaje';
 import { Home } from './pages/home/home';
 import { Alertas } from './pages/alertas/alertas';
 import { Favoritos } from './pages/favoritos/favoritos';
-import { NuevaPage } from './pages/nuevapage/nuevapage';
+import { NoticiasAdmin } from './pages/noticiasadmin/noticias';
 
 
 export const routes: Routes = [
@@ -26,6 +26,6 @@ export const routes: Routes = [
   { path: 'viajes-compartidos', component: ViajesCompartidos, canActivate: [authGuard], data: { allowGuest: true, blockAdmin: true } },
   { path: 'alertas', component: Alertas, canActivate: [authGuard], data: { allowGuest: true, blockAdmin: true } },
   { path: 'favoritos', component: Favoritos, canActivate: [authGuard], data: { allowGuest: true, blockAdmin: true } },
-  { path: 'nuevapage', component: NuevaPage, canActivate: [authGuard], data: { rolEsperado: 'admin' } },
+  { path: 'noticias-admin', component: NoticiasAdmin, canActivate: [authGuard], data: { rolEsperado: 'admin' } },
   { path: '', redirectTo: 'home', pathMatch: 'full' }
 ];

@@ -1,0 +1,56 @@
+<div>
+    <h2>Ver Noticias</h2>
+    <div>
+        <ng-container *ngIf="noticias.length === 0; else noticiasList">
+            <p>No hay noticias disponibles.</p>
+        </ng-container>
+        <ng-template #noticiasList>
+        <ul class="list-group">
+            <li *ngFor="let noticia of noticias" class="list-group-item">
+                <strong>{{ noticia.titulo }}</strong> - {{ noticia.contenido }}
+            </li>
+        </ul>
+        </ng-template>
+    </div>
+
+    <h2>Crear tu noticia</h2>
+    <div>
+        <form (ngSubmit)="crearNoticia()" maxwidth="500px">
+            <div class="mb-3">
+                <label for="titulo" class="form-label">Título de la noticia</label>
+                <input type="text" id="titulo" class="form-control" [(ngModel)]="titulo" name="titulo" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="contenido" class="form-label">Contenido de la noticia</label>
+                <textarea id="contenido" class="form-control" [(ngModel)]="contenido" name="contenido" required></textarea>
+            </div>
+
+            <div> 
+                <label for="importancia" class="form-label">Importancia</label>
+                <select id="importancia" class="form-select" [(ngModel)]="importancia" name="importancia">
+                    <option [value]="1">Leve</option>
+                    <option [value]="2">Moderada</option>
+                    <option [value]="3">Grave</option>
+                </select>
+            </div>
+            <div>
+                <label for="visibilidad" class="form-label">Visibilidad</label>
+                <select id="visibilidad" class="form-select" [(ngModel)]="visibilidad" name="visibilidad">
+                    <option [value]="true">Pública</option>
+                    <option [value]="false">Privada</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Crear Noticia</button>
+        </form>
+
+    <div>
+        <form (ngSubmit)="eliminarNoticia()" maxwidth="500px">
+            <div class="mb-3">
+                <label for="noticiaId" class="form-label">ID de la noticia a eliminar</label>
+                <input type="number" id="noticiaId" class="form-control" [(ngModel)]="noticiaId" name="noticiaId" required>
+            </div>
+            <button type="submit" class="btn btn-danger">Eliminar Noticia</button>
+        </form>
+</div>

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from '../models/user.model';
-import { Aviso } from '../models/aviso.model';
+import { Noticia } from '../models/noticia.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -50,26 +50,21 @@ export class AdminService {
   }
 
 
-
-
-
-
-
-
-
-
-
-  
-  crearAviso(data: { texto: string; importancia: number; user_id: number | null }): Observable<Aviso> {
-    return this.http.post<Aviso>(`${this.apiUrl}/examen/avisos`, data);
+  vernoticias_activas(): Observable<Noticia[]> {
+    return this.http.get<Noticia[]>(`${this.apiUrl}/examen/noticias/activas`);
+  }
+  eliminarnoticias_activas(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/examen/noticias/activas/${id}`);
+  }
+  vernoticias_publicas(): Observable<Noticia[]> {
+    return this.http.get<Noticia[]>(`${this.apiUrl}/examen/noticias/publicas`);
+  }
+  vernoticias_privadas(): Observable<Noticia[]> {
+    return this.http.get<Noticia[]>(`${this.apiUrl}/examen/noticias/privadas`);
   }
 
-  listarAvisos(): Observable<Aviso[]> {
-    return this.http.get<Aviso[]>(`${this.apiUrl}/examen/avisos`);
-  }
 
-  getAvisosUsuario(userId: number): Observable<Aviso[]> {
-    return this.http.get<Aviso[]>(`${this.apiUrl}/examen/avisos/usuario/${userId}`);
-  }
+
+
 
 }

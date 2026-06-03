@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 
+
 @Component({
   selector: 'app-home',
   imports: [CommonModule],
@@ -21,22 +22,53 @@ export class Home implements OnInit {
   ngOnInit(): void {
     const usuario = this.authService.usuarioActual();
     if (usuario) {
-      this.adminService.getAvisosUsuario(usuario.id).subscribe({
-        next: (res: any) => this.avisos = res
+      this.adminService.vernoticias_privadas().subscribe({
+        next: (data) => {
+          this.avisos = data;
+        },
+        error: (err) => {
+          console.error('Error al cargar avisos', err);
+        }
+      });
+      
+    }else {
+      this.adminService.vernoticias_publicas().subscribe({
+        next: (data) => {
+          this.avisos = data;
+        },
+        error: (err) => {
+          console.error('Error al cargar avisos', err);
+        }
       });
     }
   }
+
 
   entrarComoInvitado(): void {
     this.authService.continuarComoInvitado();
     this.router.navigate(['/viajes-compartidos']);
   }
 
-  color(imp: number) {
-    return imp === 3 ? 'danger' : imp === 2 ? 'warning' : 'success';
+  vernoticias_publicas(): void {
+    this.adminService.vernoticias_publicas().subscribe({
+        next: (data) => {
+            console.log('Noticias públicas:', data);
+        },
+        error: (err) => {
+            console.error('Error al cargar noticias públicas', err);
+        }
+    });
+
+  }
+  vernoticias_privadas(): void {
+    this.adminService.vernoticias_privadas().subscribe({
+        next: (data) => { 
+            console.log('Noticias privadas:', data);
+        },
+        error: (err) => {
+            console.error('Error al cargar noticias privadas', err);
+        }
+    });
   }
 
-  label(imp: number) {
-    return imp === 3 ? 'Grave' : imp === 2 ? 'Moderada' : 'Leve';
-  }
 }

@@ -1,8 +1,37 @@
 <div class="container py-4 py-md-5">
 
-  @for (a of avisos; track a.id) {
-    <div class="alert alert-{{ color(a.importancia) }} align-items-center gap-1">
-      <span><strong>{{ label(a.importancia) }}:</strong> {{ a.texto }}</span>
+  @if(estaAutenticado()) {
+    <div class="mb-4">
+      <h2>Noticias privadas </h2>
+       <div>
+        <ng-container *ngIf="noticias.length === 0; else noticiasList">
+            <p>No hay noticias disponibles.</p>
+        </ng-container>
+        <ng-template #noticiasList>
+        <ul class="list-group">
+            <li *ngFor="let noticia of noticias" class="list-group-item">
+                <strong>{{ noticia.titulo }}</strong> - {{ noticia.contenido }}
+            </li>
+        </ul>
+        </ng-template>
+       </div>
+
+    </div>
+  }else {
+    <div class="mb-4">
+      <h2>Noticias públicas </h2>
+       <div>
+        <ng-container *ngIf="noticias.length === 0; else noticiasList">
+            <p>No hay noticias disponibles.</p>
+        </ng-container>
+        <ng-template #noticiasList>
+        <ul class="list-group">
+            <li *ngFor="let noticia of noticias" class="list-group-item">
+                <strong>{{ noticia.titulo }}</strong> - {{ noticia.contenido }}
+            </li>
+        </ul>
+        </ng-template>
+         </div>
     </div>
   }
 
